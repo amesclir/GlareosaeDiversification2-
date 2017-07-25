@@ -1,0 +1,63 @@
+---
+title: "GlareosaeDiversification"
+author: "amesclir"
+date: "05/05/2016"
+output: html_document
+---
+
+Now we are going to work with BAMM, constant model
+
+```{r}
+library(BAMMtools)
+library(coda)
+
+## load data
+mytree <- read.tree("glareosae.tree")
+mcmcout <- read.csv("mcmc_out.txt")
+
+## create edata
+edata <- getEventData(mytree, eventdata = "event_data.txt", burnin=0.15)
+
+
+#### Check convergence
+plot(mcmcout$logLik ~ mcmcout$generation)
+
+burnstart <- floor(0.15 * nrow(mcmcout))
+postburn <- mcmcout[burnstart:nrow(mcmcout), ]
+
+effectiveSize(postburn$N_shifts)
+effectiveSize(postburn$logLik)
+
+
+
+### Shift probabilities
+shift_probs <- summary(edata)
+shift_probs
+
+
+### Bayes factors
+bfmat <- computeBayesFactors(postburn, expectedNumberOfShifts=1, burnin=0.15)
+bfmat
+
+#### PLOT CREDIBLE SHIFTS
+css <- credibleShiftSet(edata, expectedNumberOfShifts=1, threshold=5, set.limit = 0.95)
+
+plot.credibleshiftset(css,spex = "netdiv")
+
+
+### PLOT BEST SHIFT
+par(mfrow=c(1,1))
+best <- getBestShiftConfiguration(edata, expectedNumberOfShifts=1)
+plot.bammdata(best, lwd = 2,spex = "netdiv",label=T,cex=0.5)
+axisPhylo()
+addBAMMshifts(best, cex=2.5)
+best$eventData
+
+### RATE through time
+st <- max(branching.times(mytree))
+plotRateThroughTime(edata, intervalCol="red", avgCol="red", start.time=st, ylim=c(0,1), cex.axis=2,ratetype='netdiv')
+
+
+
+```
+
